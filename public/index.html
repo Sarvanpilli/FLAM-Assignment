@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Collaborative Drawing Canvas</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="toolbar">
+    <label title="Share your cursor with others">
+    <input id="shareCursor" type="checkbox" /> Share cursor
+    </label>
+    
+    <label>Nickname:
+      <input id="nickname" type="text" placeholder="Your name" maxlength="30" />
+      <button id="setName">Set</button>
+    </label>
+
+    <label>Cursor color:
+      <input id="cursorColor" type="color" value="#ff3b30" title="Color for your cursor & label" />
+    </label>
+
+    <label>Brush color:
+      <input id="color" type="color" value="#000000" />
+    </label>
+
+    <label>Size:
+      <input id="size" type="range" min="1" max="48" value="4" />
+    </label>
+
+    <button id="eraser">Eraser</button>
+    <button id="clear">Clear</button>
+    <span id="status">Connecting...</span>
+  </div>
+
+  <div id="board-wrap">
+    <canvas id="canvas"></canvas>
+  </div>
+  
+
+  <script src="app.js"></script>
+</body>
+</html>
