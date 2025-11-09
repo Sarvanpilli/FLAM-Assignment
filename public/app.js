@@ -423,11 +423,19 @@
   // pointer coordinate helper
   function getPointerPos(evt) {
     const rect = canvas.getBoundingClientRect();
+    // Account for canvas scaling if any (canvas might be scaled by CSS)
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
     if (evt.touches && evt.touches.length) {
       const t = evt.touches[0];
-      return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+      const x = (t.clientX - rect.left) * scaleX;
+      const y = (t.clientY - rect.top) * scaleY;
+      return { x, y };
     } else {
-      return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+      const x = (evt.clientX - rect.left) * scaleX;
+      const y = (evt.clientY - rect.top) * scaleY;
+      return { x, y };
     }
   }
 
@@ -442,7 +450,10 @@
       current.size = +sizeInput.value;
       current.opacity = +opacityInput.value;
       current.erasing = eraserBtn.dataset.active === 'true';
+      
+      // Store the click position - ensure we're using the exact position from the event
       textPosition = { x: pos.x, y: pos.y };
+      
       textModal.style.display = 'flex';
       textInput.focus();
       canvas.classList.add('text-mode');
@@ -614,6 +625,7 @@
       current.opacity = +opacityInput.value;
       current.erasing = eraserBtn.dataset.active === 'true';
       
+      // Draw text at the stored position
       drawText(text, textPosition.x, textPosition.y);
       
       // Send text to other users
@@ -666,6 +678,9 @@
     ctx.fillStyle = textColor;
     ctx.globalAlpha = textOpacity / 100;
     ctx.textBaseline = 'top'; // Set baseline to top so y position is accurate
+    ctx.textAlign = 'left'; // Ensure text aligns from left
+    
+    // Draw the text at the specified position
     ctx.fillText(text, x, y);
     ctx.restore();
   }
