@@ -290,6 +290,10 @@
         // Save to history after remote shape is drawn
         setTimeout(() => saveToHistory(), 50);
       }
+    } else if (data.type === 'text') {
+      // Remote user added text
+      drawText(data.text, data.x, data.y, data.color, data.size, data.opacity, data.erasing);
+      setTimeout(() => saveToHistory(), 50);
     } else if (data.type === 'cursor') {
       peers[sender].cursor = { x: data.x, y: data.y };
       drawScene();
@@ -433,6 +437,11 @@
     
     if (drawMode === 'text') {
       // Text tool - show modal
+      // Update current settings before showing modal
+      current.color = colorInput.value;
+      current.size = +sizeInput.value;
+      current.opacity = +opacityInput.value;
+      current.erasing = eraserBtn.dataset.active === 'true';
       textPosition = { x: pos.x, y: pos.y };
       textModal.style.display = 'flex';
       textInput.focus();
@@ -599,11 +608,31 @@
   textConfirm.addEventListener('click', () => {
     const text = textInput.value.trim();
     if (text && textPosition) {
+      // Ensure current settings are up to date
+      current.color = colorInput.value;
+      current.size = +sizeInput.value;
+      current.opacity = +opacityInput.value;
+      current.erasing = eraserBtn.dataset.active === 'true';
+      
       drawText(text, textPosition.x, textPosition.y);
+      
+      // Send text to other users
+      send({
+        type: 'text',
+        text: text,
+        x: textPosition.x,
+        y: textPosition.y,
+        color: current.color,
+        size: current.size,
+        opacity: current.opacity,
+        erasing: current.erasing
+      });
+      
       textInput.value = '';
       textModal.style.display = 'none';
       textPosition = null;
-      saveToHistory();
+      canvas.classList.remove('text-mode');
+      setTimeout(() => saveToHistory(), 50);
     }
   });
 
@@ -619,15 +648,24 @@
       textInput.value = '';
       textModal.style.display = 'none';
       textPosition = null;
+      canvas.classList.remove('text-mode');
     }
   });
 
-  // Draw text function
-  function drawText(text, x, y) {
+  // Draw text function (overloaded for local and remote)
+  function drawText(text, x, y, color, size, opacity, erasing) {
     ctx.save();
-    ctx.font = `${current.size * 4}px Arial`;
-    ctx.fillStyle = current.erasing ? '#ffffff' : current.color;
-    ctx.globalAlpha = current.opacity / 100;
+    // Use provided parameters or fall back to current drawing state
+    const textColor = color !== undefined ? (erasing ? '#ffffff' : color) : (current.erasing ? '#ffffff' : current.color);
+    const textSize = size !== undefined ? size : current.size;
+    const textOpacity = opacity !== undefined ? opacity : current.opacity;
+    
+    // Calculate font size - scale the size slider value appropriately
+    const fontSize = Math.max(12, textSize * 3); // Minimum 12px, scale by 3x (so size 4 = 12px, size 16 = 48px, size 48 = 144px)
+    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.fillStyle = textColor;
+    ctx.globalAlpha = textOpacity / 100;
+    ctx.textBaseline = 'top'; // Set baseline to top so y position is accurate
     ctx.fillText(text, x, y);
     ctx.restore();
   }
