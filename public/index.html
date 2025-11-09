@@ -4,38 +4,134 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Collaborative Drawing Canvas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="app-header">
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h1>Canvas Studio</h1>
+    </div>
+    <div class="status-container">
+      <div class="status-indicator" id="statusIndicator"></div>
+      <span id="status">Connecting...</span>
+    </div>
+  </div>
+
   <div id="toolbar">
-    <label title="Share your cursor with others">
-    <input id="shareCursor" type="checkbox" /> Share cursor
-    </label>
-    
-    <label>Nickname:
-      <input id="nickname" type="text" placeholder="Your name" maxlength="30" />
-      <button id="setName">Set</button>
-    </label>
+    <div class="toolbar-section">
+      <div class="tool-group">
+        <label class="tool-label checkbox-label" title="Share your cursor with others">
+          <input id="shareCursor" type="checkbox" />
+          <span class="checkmark"></span>
+          <span class="label-text">Share Cursor</span>
+        </label>
+      </div>
 
-    <label>Cursor color:
-      <input id="cursorColor" type="color" value="#ff3b30" title="Color for your cursor & label" />
-    </label>
+      <div class="tool-group">
+        <label class="tool-label">Nickname</label>
+        <div class="input-group">
+          <input id="nickname" type="text" placeholder="Your name" maxlength="30" />
+          <button id="setName" class="btn btn-primary">Set</button>
+        </div>
+      </div>
 
-    <label>Brush color:
-      <input id="color" type="color" value="#000000" />
-    </label>
+      <div class="tool-group">
+        <label class="tool-label">Cursor</label>
+        <input id="cursorColor" type="color" value="#ff3b30" title="Color for your cursor & label" class="color-input" />
+      </div>
+    </div>
 
-    <label>Size:
-      <input id="size" type="range" min="1" max="48" value="4" />
-    </label>
+    <div class="toolbar-divider"></div>
 
-    <button id="eraser">Eraser</button>
-    <button id="clear">Clear</button>
-    <span id="status">Connecting...</span>
+    <div class="toolbar-section">
+      <div class="tool-group">
+        <label class="tool-label">Brush Color</label>
+        <input id="color" type="color" value="#000000" class="color-input" />
+      </div>
+
+      <div class="tool-group">
+        <label class="tool-label">Size: <span id="sizeValue">4</span></label>
+        <input id="size" type="range" min="1" max="48" value="4" class="slider" />
+      </div>
+
+      <div class="tool-group">
+        <label class="tool-label">Opacity: <span id="opacityValue">100</span>%</label>
+        <input id="opacity" type="range" min="10" max="100" value="100" class="slider" />
+      </div>
+    </div>
+
+    <div class="toolbar-divider"></div>
+
+    <div class="toolbar-section">
+      <div class="shape-tools">
+        <label class="shape-tool" title="Freehand drawing">
+          <input type="radio" name="drawMode" value="freehand" checked />
+          <span class="tool-icon">✏️</span>
+          <span class="tool-name">Pen</span>
+        </label>
+        <label class="shape-tool" title="Draw rectangle">
+          <input type="radio" name="drawMode" value="rectangle" />
+          <span class="tool-icon">▭</span>
+          <span class="tool-name">Rect</span>
+        </label>
+        <label class="shape-tool" title="Draw circle">
+          <input type="radio" name="drawMode" value="circle" />
+          <span class="tool-icon">○</span>
+          <span class="tool-name">Circle</span>
+        </label>
+        <label class="shape-tool" title="Draw line">
+          <input type="radio" name="drawMode" value="line" />
+          <span class="tool-icon">━</span>
+          <span class="tool-name">Line</span>
+        </label>
+        <label class="shape-tool" title="Add text">
+          <input type="radio" name="drawMode" value="text" />
+          <span class="tool-icon">T</span>
+          <span class="tool-name">Text</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="toolbar-divider"></div>
+
+    <div class="toolbar-section">
+      <button id="undo" class="btn btn-action" title="Undo (Ctrl+Z)">
+        <span>↶</span> Undo
+      </button>
+      <button id="redo" class="btn btn-action" title="Redo (Ctrl+Y)">
+        <span>↷</span> Redo
+      </button>
+      <button id="eraser" class="btn btn-secondary">Eraser</button>
+      <button id="clear" class="btn btn-danger">Clear</button>
+      <button id="export" class="btn btn-success" title="Export as PNG">
+        <span>💾</span> Export
+      </button>
+    </div>
   </div>
 
   <div id="board-wrap">
     <canvas id="canvas"></canvas>
+    <canvas id="cursorOverlay"></canvas>
+  </div>
+
+  <!-- Text Input Modal -->
+  <div id="textModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>Enter Text</h3>
+      <input type="text" id="textInput" placeholder="Type your text here..." maxlength="100" />
+      <div class="modal-buttons">
+        <button id="textCancel" class="btn btn-secondary">Cancel</button>
+        <button id="textConfirm" class="btn btn-primary">Add Text</button>
+      </div>
+    </div>
   </div>
   
 
