@@ -26,6 +26,16 @@
   const textInput = document.getElementById('textInput');
   const textConfirm = document.getElementById('textConfirm');
   const textCancel = document.getElementById('textCancel');
+  
+  // Welcome screen elements
+  const welcomeModal = document.getElementById('welcomeModal');
+  const mainApp = document.getElementById('mainApp');
+  const welcomeName = document.getElementById('welcomeName');
+  const welcomeNickname = document.getElementById('welcomeNickname');
+  const welcomeCursorColor = document.getElementById('welcomeCursorColor');
+  const welcomeSubmit = document.getElementById('welcomeSubmit');
+  const onlineUsersList = document.getElementById('onlineUsersList');
+  const onlineCount = document.getElementById('onlineCount');
 
 
   // Save state to history
@@ -149,39 +159,96 @@
   let historyIndex = -1; // Current position in history
   const MAX_HISTORY = 50; // Maximum history states
 
-  // WebSocket connection
-  const protocol = (location.protocol === 'https:') ? 'wss' : 'ws';
-  const wsUrl = `${protocol}://${location.host}`;
-  const socket = new WebSocket(wsUrl);
-
+  // User info (will be set from welcome screen)
+  let userName = '';
+  let userNickname = '';
+  let userCursorColor = '#ff3b30';
+  
+  // WebSocket connection (will be initialized after welcome screen)
+  let socket = null;
   let clientId = null;
   let myMeta = { id: null, name: '', color: '' };
   const peers = {}; // peers[id] = { name, color, cursor: {x,y}, path: [] }
-
-  socket.addEventListener('open', () => {
-    statusSpan.textContent = 'Connected';
-    if (statusIndicator) {
-      statusIndicator.className = 'status-indicator connected';
+  
+  // Welcome screen handler
+  welcomeSubmit.addEventListener('click', () => {
+    const name = welcomeName.value.trim();
+    const nickname = welcomeNickname.value.trim();
+    const cursorColor = welcomeCursorColor.value;
+    
+    if (!name || !nickname) {
+      alert('Please enter both your name and nickname');
+      return;
     }
-    // send join immediately with current nickname/color (they might still be empty)
-    sendJoin();
+    
+    // Store user info
+    userName = name;
+    userNickname = nickname;
+    userCursorColor = cursorColor;
+    myMeta.name = nickname;
+    myMeta.color = cursorColor;
+    
+    // Hide welcome screen and show main app
+    welcomeModal.style.display = 'none';
+    mainApp.style.display = 'flex';
+    mainApp.style.flexDirection = 'column';
+    
+    // Initialize WebSocket connection
+    initializeWebSocket();
   });
-  socket.addEventListener('close', () => { 
-    statusSpan.textContent = 'Disconnected'; 
-    if (statusIndicator) {
-      statusIndicator.className = 'status-indicator disconnected';
-    }
+  
+  // Allow Enter key to submit welcome form
+  welcomeName.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') welcomeNickname.focus();
   });
-  socket.addEventListener('error', () => { 
-    statusSpan.textContent = 'Connection error'; 
-    if (statusIndicator) {
-      statusIndicator.className = 'status-indicator disconnected';
-    }
+  
+  welcomeNickname.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') welcomeSubmit.click();
   });
-
-  socket.addEventListener('message', (ev) => {
+  
+  // Initialize WebSocket connection
+  function initializeWebSocket() {
+    const protocol = (location.protocol === 'https:') ? 'wss' : 'ws';
+    const wsUrl = `${protocol}://${location.host}`;
+    socket = new WebSocket(wsUrl);
+    
+    setupWebSocketListeners();
+  }
+  
+  // Setup WebSocket event listeners
+  function setupWebSocketListeners() {
+    socket.addEventListener('open', () => {
+      statusSpan.textContent = 'Connecting...';
+      if (statusIndicator) {
+        statusIndicator.className = 'status-indicator';
+      }
+      // Send initial join message with user info
+      send({ type: 'join', name: userNickname, color: userCursorColor });
+    });
+    
+    socket.addEventListener('close', () => { 
+      statusSpan.textContent = 'Disconnected'; 
+      if (statusIndicator) {
+        statusIndicator.className = 'status-indicator disconnected';
+      }
+      updateOnlineUsers();
+    });
+    
+    socket.addEventListener('error', () => { 
+      statusSpan.textContent = 'Connection error'; 
+      if (statusIndicator) {
+        statusIndicator.className = 'status-indicator disconnected';
+      }
+    });
+    
+    socket.addEventListener('message', handleWebSocketMessage);
+  }
+  
+  // Handle WebSocket messages
+  function handleWebSocketMessage(ev) {
     let data;
     try { data = JSON.parse(ev.data); } catch (e) { return; }
+    
     if (data.type === 'welcome') {
       clientId = data.id;
       statusSpan.textContent = `Connected (ID: ${clientId})`;
@@ -202,6 +269,7 @@
           }
         });
       }
+      updateOnlineUsers();
       return;
     }
 
@@ -218,6 +286,7 @@
         peers[data.id].color = data.color;
       }
       drawScene();
+      updateOnlineUsers();
       return;
     }
 
@@ -228,15 +297,23 @@
       peers[data.id].name = data.name;
       peers[data.id].color = data.color;
       drawScene();
+      updateOnlineUsers();
       return;
     }
 
     if (data.type === 'leave') {
       delete peers[data.id];
       drawScene();
+      updateOnlineUsers();
       return;
     }
-
+    
+    // Continue with existing message handling...
+    handleDrawingMessages(data);
+  }
+  
+  // Handle drawing-related messages
+  function handleDrawingMessages(data) {
     // remote drawing/cursor events
     const sender = data.sender;
     if (!peers[sender]) peers[sender] = { path: [], cursor: null, name: `User${sender}`, color: '#666', shapeStart: null, shapeType: null };
@@ -342,7 +419,49 @@
         img.src = data.canvasData;
       }
     }
-  });
+  }
+  
+  // Update online users list
+  function updateOnlineUsers() {
+    if (!onlineUsersList || !onlineCount) return;
+    
+    // Clear existing list
+    onlineUsersList.innerHTML = '';
+    
+    // Add header
+    const header = document.createElement('div');
+    header.className = 'online-users-list-header';
+    header.textContent = 'Online Users';
+    onlineUsersList.appendChild(header);
+    
+    // Add current user
+    const currentUserItem = document.createElement('div');
+    currentUserItem.className = 'online-user-item';
+    currentUserItem.innerHTML = `
+      <div class="online-user-color" style="background-color: ${myMeta.color || userCursorColor}"></div>
+      <span class="online-user-name">${myMeta.name || userNickname}</span>
+      <span class="online-user-you">(You)</span>
+    `;
+    onlineUsersList.appendChild(currentUserItem);
+    
+    // Add other users
+    Object.keys(peers).forEach(id => {
+      const peer = peers[id];
+      if (peer && peer.name) {
+        const userItem = document.createElement('div');
+        userItem.className = 'online-user-item';
+        userItem.innerHTML = `
+          <div class="online-user-color" style="background-color: ${peer.color || '#666'}"></div>
+          <span class="online-user-name">${peer.name}</span>
+        `;
+        onlineUsersList.appendChild(userItem);
+      }
+    });
+    
+    // Update count (including current user)
+    const totalUsers = Object.keys(peers).length + 1;
+    onlineCount.textContent = totalUsers;
+  }
 
   // helpers for drawing
   function drawLineSegment(p1, p2, peerInfo) {
@@ -727,7 +846,7 @@
 
   // send join helper
   function sendJoin(name = nicknameInput.value.trim(), color = cursorColorInput.value) {
-    if (socket.readyState !== WebSocket.OPEN) return;
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
     const msg = { type: 'join', name: name || `User${clientId || Math.floor(Math.random()*1000)}`, color: color || '#000000' };
     socket.send(JSON.stringify(msg));
   }
@@ -735,7 +854,7 @@
   // throttle cursor updates
   let lastCursorSent = 0;
   function sendCursor(pos) {
-    if (socket.readyState !== WebSocket.OPEN) return;
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
     // only send if user opted-in to share cursor
     if (!shareCursorCheckbox || !shareCursorCheckbox.checked) return;
     const now = Date.now();
@@ -746,7 +865,7 @@
 
   // general send
   function send(obj) {
-    if (socket.readyState !== WebSocket.OPEN) return;
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
     socket.send(JSON.stringify(obj));
   }
 

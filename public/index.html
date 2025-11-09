@@ -10,20 +10,61 @@
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app-header">
-    <div class="logo">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <h1>Canvas Studio</h1>
-    </div>
-    <div class="status-container">
-      <div class="status-indicator" id="statusIndicator"></div>
-      <span id="status">Connecting...</span>
+  <!-- Welcome Screen -->
+  <div id="welcomeModal" class="welcome-modal">
+    <div class="welcome-content">
+      <div class="welcome-header">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h1>Welcome to Canvas Studio</h1>
+        <p>Enter your details to start drawing</p>
+      </div>
+      <div class="welcome-form">
+        <div class="form-group">
+          <label for="welcomeName">Your Name</label>
+          <input type="text" id="welcomeName" placeholder="Enter your name" maxlength="30" required />
+        </div>
+        <div class="form-group">
+          <label for="welcomeNickname">Nickname</label>
+          <input type="text" id="welcomeNickname" placeholder="Enter your nickname" maxlength="30" required />
+        </div>
+        <div class="form-group">
+          <label for="welcomeCursorColor">Cursor Color</label>
+          <input type="color" id="welcomeCursorColor" value="#ff3b30" class="color-input-large" />
+        </div>
+        <button id="welcomeSubmit" class="btn btn-primary btn-large">Start Drawing</button>
+      </div>
     </div>
   </div>
+
+  <!-- Main App (hidden until welcome is completed) -->
+  <div id="mainApp" style="display: none;">
+    <div class="app-header">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h1>Canvas Studio</h1>
+      </div>
+      <div class="header-right">
+        <div class="online-users-section">
+          <div class="online-users-header">
+            <span class="online-icon">👥</span>
+            <span class="online-count" id="onlineCount">0</span>
+          </div>
+          <div class="online-users-list" id="onlineUsersList"></div>
+        </div>
+        <div class="status-container">
+          <div class="status-indicator" id="statusIndicator"></div>
+          <span id="status">Connecting...</span>
+        </div>
+      </div>
+    </div>
 
   <div id="toolbar">
     <div class="toolbar-section">
@@ -39,7 +80,7 @@
         <label class="tool-label">Nickname</label>
         <div class="input-group">
           <input id="nickname" type="text" placeholder="Your name" maxlength="30" />
-          <button id="setName" class="btn btn-primary">Set</button>
+          <button id="setName" class="btn btn-primary">Update</button>
         </div>
       </div>
 
